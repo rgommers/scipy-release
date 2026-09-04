@@ -67,12 +67,10 @@ jobs:
 
       - name: Check lock file
         run: |
-          # If the uv.lock file in this repo goes out of date you can regenerate it by:
-          # uv lock --exclude-newer "7 days"
-          # You issue that command within the main repo, and copy it to this repo, submitting
-          # a PR to commit it.
-          cp uv.lock scipy-src
-          pushd scipy-src
+          # pyproject.toml holds the dependency groups the builds install, copied out
+          # of scipy's; regenerating it here is what catches scipy changing them.
+          # See CONTRIBUTING.md for how to regenerate these files.
+          python3 tools/sync_dependency_groups.py scipy-src | diff -u pyproject.toml -
           uv lock --check
 
 
@@ -237,18 +235,17 @@ jobs:
 
       - name: Build sdist
         run: |
-          # use uv and a lock file to pin down all dependencies for the sdist build
-          # copy uv.lock from scipy-release into scipy src directory
-          cp uv.lock scipy-src
-          pushd scipy-src
+          # use uv and a lock file to pin down all dependencies for the sdist build.
+          # The lock file lives in this repo, so sync from here; the environment goes
+          # into the scipy checkout, where `uv build --no-build-isolation` looks for it.
+          export UV_PROJECT_ENVIRONMENT=$GITHUB_WORKSPACE/scipy-src/.venv
 
-          # installs the 'build' and 'openblas32' dependency groups. Install should be into
-          # a .venv in the same directory
+          # installs the 'build' and 'openblas32' dependency groups
           # --frozen : uses specification in uv.lock as source of truth
-          # --no-install-project : don't try to build scipy
           # only-managed: force uv to use a managed python
-          uv sync --python-preference only-managed --frozen --no-install-project --no-default-groups --group build --group $OPENBLAS
+          uv sync --python-preference only-managed --frozen --no-default-groups --group build --group $OPENBLAS
 
+          pushd scipy-src
           # need openblas even for the sdist build
           pkgconf_path=$GITHUB_WORKSPACE/scipy-src/.openblas
 
@@ -270,7 +267,7 @@ jobs:
           # export the build, test and openblas requirements.
           # no-emit-project: the project is excluded, but all of its dependencies remain
           #                  included.
-          uv export --format pylock.toml --output-file dist/pylock.toml -q --no-emit-project --no-default-groups --group build --group test-core --group openblas32
+          uv export --project $GITHUB_WORKSPACE --format pylock.toml --output-file dist/pylock.toml -q --no-emit-project --no-default-groups --group build --group test-core --group openblas32
 
           # build and install the sdist in a venv.
           cd dist
