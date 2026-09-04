@@ -61,9 +61,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          # can't use checksum here, because there are different packages
-          # for different OS
           version: ${{ env.UV_VERSION }}
+          # unlike build_wheels, this job is Linux-only, so we can pin the download too
+          checksum: "68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2"
 
       - name: Check lock file
         run: |
@@ -72,6 +72,17 @@ jobs:
           # See CONTRIBUTING.md for how to regenerate these files.
           python3 tools/sync_dependency_groups.py scipy-src | diff -u pyproject.toml -
           uv lock --check
+
+      - name: Record the pins that will be used
+        run: |
+          # the packages that actually get installed, for review of a lock file bump
+          {
+            echo '## Build and test dependencies for this run'
+            echo '```'
+            uv export --frozen --no-hashes --no-emit-project --no-default-groups \
+              --group build --group openblas32 --group test-core
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
 
   build_wheels:
@@ -209,6 +220,8 @@ jobs:
     name: Build sdist
     runs-on: ubuntu-latest
     if: github.repository == 'scipy/scipy-release'
+    # this job installs with `--frozen`, which skips the lock file check
+    needs: [check_lock]
     env:
       OPENBLAS: openblas32
 
