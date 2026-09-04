@@ -69,9 +69,10 @@ jobs:
         run: |
           # pyproject.toml holds the dependency groups the builds install, copied out
           # of scipy's; regenerating it here is what catches scipy changing them.
-          # See CONTRIBUTING.md for how to regenerate these files.
+          # See CONTRIBUTING.md for how to regenerate these files. The cooldown the
+          # lock was generated with is recorded in it, and has to be repeated here.
           python3 tools/sync_dependency_groups.py scipy-src | diff -u pyproject.toml -
-          uv lock --check
+          uv lock --check --exclude-newer "7 days"
 
       - name: Record the pins that will be used
         run: |
