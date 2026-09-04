@@ -256,7 +256,9 @@ jobs:
 
           # installs the 'build' and 'openblas32' dependency groups
           # --frozen : uses specification in uv.lock as source of truth
-          # only-managed: force uv to use a managed python
+          # only-managed: force uv to use a managed python. No version is requested, so
+          #     it's uv's default managed CPython - i.e. UV_VERSION decides which Python
+          #     the sdist is built and tested with; cibuildwheel isn't used in this job.
           uv sync --python-preference only-managed --frozen --no-default-groups --group build --group $OPENBLAS
 
           pushd scipy-src
@@ -281,15 +283,16 @@ jobs:
           # export the build, test and openblas requirements.
           # no-emit-project: the project is excluded, but all of its dependencies remain
           #                  included.
-          uv export --project $GITHUB_WORKSPACE --format pylock.toml --output-file dist/pylock.toml -q --no-emit-project --no-default-groups --group build --group test-core --group openblas32
+          uv export --project $GITHUB_WORKSPACE --format pylock.toml --output-file dist/pylock.toml -q --frozen --no-emit-project --no-default-groups --group build --group test-core --group $OPENBLAS
 
           # build and install the sdist in a venv.
           cd dist
           # no-config: Avoid discovering configuration files (`pyproject.toml`, `uv.toml`)
-          # no-project: Avoid discovering a project or workspace
+          # no-project: Avoid discovering a project or workspace. This also means
+          #     requires-python isn't consulted; no python version is requested either,
+          #     so the venv reuses the interpreter `uv sync` installed above.
           uv venv test --no-config --no-project
           source test/bin/activate
-          # requires pip > 26.1 to read a pylock file
           uv pip install --no-deps --require-hashes -r pylock.toml
           uv pip install --no-deps --no-build-isolation -v *.gz
           python -c "import scipy, sys; print(scipy.__version__); sys.exit(scipy.test() is False)"

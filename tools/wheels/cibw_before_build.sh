@@ -40,6 +40,8 @@ fi
 
 
 # install build dependencies via uv
+# log which uv this is: on Linux it comes from the manylinux image, not from setup-uv
+uv --version
 # the lock file lives in this repo, not in the scipy checkout; the check_lock job in
 # wheels.yml verifies it still matches scipy's dependency groups
 PYTHON_EXE="$(python -c 'import sys; print(sys.executable)')"
