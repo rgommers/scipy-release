@@ -46,17 +46,6 @@ if [[ "$INSTALL_OPENBLAS" = "true" ]] ; then
     rm -rf $pkgconf_path
     mkdir -p $pkgconf_path
     python -c "import scipy_openblas32; print(scipy_openblas32.get_pkg_config())" > $pkgconf_path/scipy-openblas.pc
-
-    # Copy scipy-openblas DLL's to a fixed location so we can point delvewheel
-    # at it in `repair_windows.sh` (needed only on Windows because of the lack
-    # of RPATH support).
-    if [[ $RUNNER_OS == "Windows" ]]; then
-        python <<EOF
-import os, scipy_openblas32, shutil
-srcdir = os.path.join(os.path.dirname(scipy_openblas32.__file__), "lib")
-shutil.copytree(srcdir, os.path.join("$pkgconf_path", "lib"))
-EOF
-    fi
 fi
 
 
