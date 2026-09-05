@@ -21,11 +21,11 @@ musllinux-aarch64-image = "musllinux_1_2"
 # RUNNER_OS is a GitHub Actions specific env var; define it here so it's
 # defined when running cibuildwheel locally
 RUNNER_OS="Linux"
-# /project will be the $PWD equivalent inside the Docker container used to build the wheel
+# /project will be the $PWD equivalent inside the Docker container used to build the wheel.
+# Linux is the only platform where this can be set here: macOS and Windows need a
+# CIBW_ENVIRONMENT_* from wheels.yml for values that depend on the build matrix, and that
+# replaces this table wholesale rather than merging into it.
 PKG_CONFIG_PATH="/project/.openblas"
-
-[tool.cibuildwheel.macos.environment]
-PKG_CONFIG_PATH = "{project}"
 
 [tool.cibuildwheel.windows]
 repair-wheel-command = "bash ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
